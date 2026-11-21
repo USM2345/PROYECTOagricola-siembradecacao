@@ -1,0 +1,372 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Marco de Siembra - Cacao TCS 06</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #f4f7f0;
+            color: #2c3e2d;
+        }
+        h1 {
+            text-align: center;
+            font-size: 1.6rem;
+            color: #2d5a27;
+            margin-bottom: 5px;
+        }
+        .subtitulo {
+            text-align: center;
+            font-size: 0.95rem;
+            color: #5a7a55;
+            margin-bottom: 20px;
+        }
+        .contenedor {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .panel {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            flex: 1 1 320px;
+        }
+        .panel h2 {
+            font-size: 1.1rem;
+            color: #2d5a27;
+            border-bottom: 2px solid #a8d5a2;
+            padding-bottom: 6px;
+            margin-top: 0;
+        }
+        label {
+            display: block;
+            margin-top: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 8px 10px;
+            margin-top: 4px;
+            border: 1px solid #b8ccb4;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #2d5a27;
+            box-shadow: 0 0 0 2px rgba(45,90,39,0.15);
+        }
+        .unidad {
+            font-weight: 400;
+            color: #6b8a66;
+            font-size: 0.85rem;
+        }
+        .resultado {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed #d0dfcc;
+            font-size: 0.95rem;
+        }
+        .resultado:last-child {
+            border-bottom: none;
+        }
+        .resultado .valor {
+            font-weight: 700;
+            color: #1e4620;
+        }
+        .alerta {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: none;
+        }
+        .alerta.error {
+            background: #fdecea;
+            color: #b71c1c;
+            display: block;
+        }
+        .alerta.ok {
+            background: #e8f5e9;
+            color: #1b5e20;
+            display: block;
+        }
+        canvas {
+            width: 100%;
+            height: auto;
+            border: 1px solid #c8dcc4;
+            border-radius: 8px;
+            background: #fbfdf9;
+            margin-top: 10px;
+        }
+        .nota {
+            font-size: 0.8rem;
+            color: #6b8a66;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+        .btn {
+            margin-top: 15px;
+            width: 100%;
+            padding: 10px;
+            background: #2d5a27;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background: #1e4620;
+        }
+        @media (max-width: 700px) {
+            .contenedor { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+<h1>Simulador de Marco de Siembra</h1>
+<div class="subtitulo">Cacao TCS 06 · Optimización con modelos cuadráticos · Agrosavia</div>
+
+<div class="contenedor">
+
+    <!-- PANEL DE ENTRADA -->
+    <div class="panel">
+        <h2>Datos de entrada</h2>
+
+        <label>Largo del lote L <span class="unidad">(m)</span></label>
+        <input type="number" id="largo" value="75" min="0.1" step="0.1">
+
+        <label>Ancho del lote W <span class="unidad">(m)</span></label>
+        <input type="number" id="ancho" value="75" min="0.1" step="0.1">
+
+        <label>Distancia entre plantas dp <span class="unidad">(m)</span></label>
+        <input type="number" id="dp" value="3" min="0.1" step="0.1">
+
+        <label>Distancia entre hileras dh <span class="unidad">(m)</span></label>
+        <input type="number" id="dh" value="3" min="0.1" step="0.1">
+
+        <label>Perímetro de cerca disponible P <span class="unidad">(m)</span></label>
+        <input type="number" id="perimetro" value="300" min="1" step="1">
+
+        <label>Área meta A_meta <span class="unidad">(m²)</span></label>
+        <input type="number" id="areaMeta" value="6000" min="1" step="1">
+
+        <button class="btn" onclick="calcular()">Calcular y graficar</button>
+        <div id="alerta" class="alerta"></div>
+    </div>
+
+    <!-- PANEL DE RESULTADOS -->
+    <div class="panel">
+        <h2>Resultados del cálculo</h2>
+
+        <div class="resultado"><span>Plantas por hilera (Np)</span><span class="valor" id="rNp">—</span></div>
+        <div class="resultado"><span>Número de hileras (Nh)</span><span class="valor" id="rNh">—</span></div>
+        <div class="resultado"><span>Población total (Pt)</span><span class="valor" id="rPt">—</span></div>
+        <div class="resultado"><span>Densidad de siembra (Dha)</span><span class="valor" id="rDha">—</span></div>
+        <div class="resultado"><span>Área del lote</span><span class="valor" id="rArea">—</span></div>
+
+        <h2 style="margin-top:18px;">Optimización cuadrática</h2>
+
+        <div class="resultado"><span>Área máxima con P</span><span class="valor" id="rAreaMax">—</span></div>
+        <div class="resultado"><span>L y W óptimos</span><span class="valor" id="rDimOpt">—</span></div>
+        <div class="resultado"><span>Discriminante (Δ)</span><span class="valor" id="rDisc">—</span></div>
+        <div class="resultado"><span>¿Área meta alcanzable?</span><span class="valor" id="rMeta">—</span></div>
+        <div class="resultado"><span>Densidad óptima</span><span class="valor" id="rDOpt">—</span></div>
+        <div class="resultado"><span>Rendimiento máximo</span><span class="valor" id="rRMax">—</span></div>
+
+        <div class="nota">
+            Modelo de rendimiento: R(D) = -0,0004·D² + 0,9·D<br>
+            Modelo de área: A(L) = -L² + (P/2)·L<br>
+            Discriminante: Δ = (P/2)² - 4·A_meta
+        </div>
+    </div>
+
+    <!-- PANEL GRÁFICO -->
+    <div class="panel" style="flex: 1 1 100%;">
+        <h2>Cuadrícula de siembra (vista proporcional)</h2>
+        <canvas id="lienzo" width="900" height="500"></canvas>
+        <div class="nota">
+            Cada punto verde representa una planta de cacao. La cuadrícula se ajusta a las dimensiones del lote y a las distancias de siembra.
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function calcular() {
+        // Leer valores
+        const L = parseFloat(document.getElementById('largo').value);
+        const W = parseFloat(document.getElementById('ancho').value);
+        const dp = parseFloat(document.getElementById('dp').value);
+        const dh = parseFloat(document.getElementById('dh').value);
+        const P = parseFloat(document.getElementById('perimetro').value);
+        const A_meta = parseFloat(document.getElementById('areaMeta').value);
+
+        const alerta = document.getElementById('alerta');
+        alerta.className = 'alerta';
+        alerta.textContent = '';
+
+        // Validaciones
+        if ([L, W, dp, dh, P, A_meta].some(v => isNaN(v) || v <= 0)) {
+            alerta.className = 'alerta error';
+            alerta.textContent = 'Error: todos los valores deben ser números positivos mayores que cero.';
+            return;
+        }
+        if (dp >= L || dh >= W) {
+            alerta.className = 'alerta error';
+            alerta.textContent = 'Error: las distancias de siembra deben ser menores que las dimensiones del lote.';
+            return;
+        }
+
+        // Cálculos lineales
+        const Np = L / dp;
+        const Nh = W / dh;
+        const Pt = Np * Nh;
+        const Dha = 10000 / (dp * dh);
+        const area = L * W;
+
+        // Optimización cuadrática - área máxima
+        const Lopt = P / 4;
+        const Wopt = P / 4;
+        const areaMax = Lopt * Wopt;
+
+        // Discriminante
+        const disc = Math.pow(P / 2, 2) - 4 * A_meta;
+        let metaTexto;
+        if (disc > 0) metaTexto = 'Sí (Δ > 0)';
+        else if (disc === 0) metaTexto = 'Sí, área exacta (Δ = 0)';
+        else metaTexto = 'No (Δ < 0)';
+
+        // Densidad óptima
+        const dOpt = -0.9 / (2 * -0.0004);
+        const rMax = -0.0004 * dOpt * dOpt + 0.9 * dOpt;
+
+        // Mostrar resultados
+        document.getElementById('rNp').textContent = Np.toFixed(2);
+        document.getElementById('rNh').textContent = Nh.toFixed(2);
+        document.getElementById('rPt').textContent = Math.round(Pt).toLocaleString('es-CO');
+        document.getElementById('rDha').textContent = Dha.toFixed(2) + ' plantas/ha';
+        document.getElementById('rArea').textContent = area.toFixed(2) + ' m²';
+
+        document.getElementById('rAreaMax').textContent = areaMax.toFixed(2) + ' m²';
+        document.getElementById('rDimOpt').textContent = Lopt.toFixed(2) + ' × ' + Wopt.toFixed(2) + ' m';
+        document.getElementById('rDisc').textContent = disc.toFixed(2);
+        document.getElementById('rMeta').textContent = metaTexto;
+        document.getElementById('rDOpt').textContent = dOpt.toFixed(2) + ' plantas/ha';
+        document.getElementById('rRMax').textContent = rMax.toFixed(2) + ' kg/ha/año';
+
+        if (disc < 0) {
+            alerta.className = 'alerta error';
+            alerta.textContent = 'Aviso: el área meta de ' + A_meta + ' m² no es alcanzable con ' + P + ' m de cerca (Δ = ' + disc.toFixed(2) + ').';
+        } else {
+            alerta.className = 'alerta ok';
+            alerta.textContent = 'El área meta es alcanzable con el perímetro disponible.';
+        }
+
+        dibujar(L, W, dp, dh);
+    }
+
+    function dibujar(L, W, dp, dh) {
+        const canvas = document.getElementById('lienzo');
+        const ctx = canvas.getContext('2d');
+        const anchoCanvas = canvas.width;
+        const altoCanvas = canvas.height;
+        const margen = 50;
+
+        ctx.clearRect(0, 0, anchoCanvas, altoCanvas);
+
+        // Escala proporcional
+        const anchoUtil = anchoCanvas - 2 * margen;
+        const altoUtil = altoCanvas - 2 * margen;
+        const escala = Math.min(anchoUtil / L, altoUtil / W);
+        const anchoDibujo = L * escala;
+        const altoDibujo = W * escala;
+
+        const x0 = margen + (anchoUtil - anchoDibujo) / 2;
+        const y0 = margen + (altoUtil - altoDibujo) / 2;
+
+        // Fondo del lote
+        ctx.fillStyle = '#eef7ea';
+        ctx.fillRect(x0, y0, anchoDibujo, altoDibujo);
+
+        // Borde
+        ctx.strokeStyle = '#2d5a27';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x0, y0, anchoDibujo, altoDibujo);
+
+        // Líneas de la cuadrícula de siembra
+        ctx.strokeStyle = 'rgba(45,90,39,0.15)';
+        ctx.lineWidth = 0.5;
+
+        const nLineasX = Math.floor(L / dp);
+        const nLineasY = Math.floor(W / dh);
+
+        for (let i = 1; i <= nLineasX; i++) {
+            const x = x0 + i * dp * escala;
+            ctx.beginPath();
+            ctx.moveTo(x, y0);
+            ctx.lineTo(x, y0 + altoDibujo);
+            ctx.stroke();
+        }
+        for (let j = 1; j <= nLineasY; j++) {
+            const y = y0 + j * dh * escala;
+            ctx.beginPath();
+            ctx.moveTo(x0, y);
+            ctx.lineTo(x0 + anchoDibujo, y);
+            ctx.stroke();
+        }
+
+        // Puntos de plantas
+        const radio = Math.max(1.5, Math.min(4, escala * Math.min(dp, dh) * 0.18));
+        ctx.fillStyle = '#1e7a2e';
+        for (let i = 1; i <= nLineasX; i++) {
+            for (let j = 1; j <= nLineasY; j++) {
+                const x = x0 + i * dp * escala;
+                const y = y0 + j * dh * escala;
+                ctx.beginPath();
+                ctx.arc(x, y, radio, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
+
+        // Etiquetas de ejes
+        ctx.fillStyle = '#2d5a27';
+        ctx.font = '13px Segoe UI, Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Largo L = ' + L + ' m', x0 + anchoDibujo / 2, y0 + altoDibujo + 30);
+
+        ctx.save();
+        ctx.translate(x0 - 18, y0 + altoDibujo / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText('Ancho W = ' + W + ' m', 0, 0);
+        ctx.restore();
+
+        // Leyenda de conteo
+        ctx.fillStyle = '#1e4620';
+        ctx.font = 'bold 12px Segoe UI, Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText('Plantas por hilera: ' + nLineasX + '  |  Hileras: ' + nLineasY + '  |  Total: ' + (nLineasX * nLineasY), x0, y0 - 12);
+    }
+
+    // Calcular al cargar
+    window.onload = calcular;
+</script>
+
+</body>
+</html>
